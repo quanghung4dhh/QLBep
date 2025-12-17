@@ -9,6 +9,11 @@ import { connectDB } from "./database/db.js";
 import nhanVienRoutes from "./routes/getNV.js";
 import nguyenLieuRoutes from "./routes/getNL.js";
 import monAnRoutes from "./routes/getMA.js";
+import nhaCungCapRoutes from "./routes/getNCC.js";
+import hoaDonRoutes from "./routes/getHD.js";
+import donHangRoutes from "./routes/getDH.js";
+import caLamViecRoutes from "./routes/getCLV.js";
+import lichLamViecRoutes from "./routes/getLLV.js";
 
 dotenv.config();
 
@@ -37,11 +42,13 @@ app.use("/api/nguyen-lieu", nguyenLieuRoutes);
 // Tất cả API trong monAn.js sẽ bắt đầu bằng /api/mon-an
 app.use("/api/mon-an", monAnRoutes);
 
+app.use("/api/nha-cung-cap", nhaCungCapRoutes);
+app.use("/api/hoa-don", hoaDonRoutes);
+app.use("/api/don-hang", donHangRoutes);
+app.use("/api/ca-lam-viec", caLamViecRoutes); // Gồm cả phân công ca
+app.use("/api/lich-lam-viec", lichLamViecRoutes); // Gồm cả chấm công
 
 // Chạy Server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`👉 Test Nhân viên: http://localhost:${PORT}/api/nhan-vien`);
-  console.log(`👉 Test Món ăn: http://localhost:${PORT}/api/mon-an`);
-  console.log(`👉 Test Kho: http://localhost:${PORT}/api/nguyen-lieu`);
 });
