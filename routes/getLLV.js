@@ -90,6 +90,7 @@ router.get("/cham-cong", async (req, res) => {
           gioVaoThucTe: 1,
           gioRaThucTe: 1,
           trangThai: 1,
+          lyDo: 1,
         },
       },
       { $sort: { ngayCham: -1 } },
@@ -226,6 +227,108 @@ router.post("/cham-cong", async (req, res) => {
 
   } catch (err) {
     res.status(500).json({ message: "❌ Lỗi Server: " + err.message });
+  }
+});
+
+router.get("/tinh-luong", async (req, res) => {
+  try {
+    const { tenNV } = req.query; // Lấy tên từ query param (URL)
+
+    // Khởi tạo pipeline xử lý
+    const pipeline = [
+      // B1: Join với bảng NhanVien để lấy tên
+      {
+        $lookup: {
+          from: "nhanviens",
+          localField: "maNV",
+          foreignField: "maNV",
+          as: "infoNV",
+        },
+      },
+      // B2: Làm phẳng mảng infoNV để dễ truy xuất
+      { $unwind: "$infoNV" },
+    ];
+
+    // B3: Nếu có truyền tên nhân viên thì lọc (Tìm kiếm gần đúng)
+    if (tenNV) {
+      pipeline.push({
+        $match: {
+          "infoNV.hoTen": { $regex: new RegExp(tenNV, "i") },
+        },
+      });
+    }
+
+    // B4: Tính tiền cho từng dòng chấm công
+    pipeline.push({
+      $project: {
+        maNV: 1,
+        hoTen: "$infoNV.hoTen",
+        ngayCham: 1,
+        trangThai: 1,
+        lyDo: 1,
+        tienLuongNgay: {
+          $switch: {
+            branches: [
+              // 1. Đúng giờ (hoặc Đi làm) -> +100k
+              { 
+                case: { $in: ["$trangThai", ["Đúng giờ", "Đi làm"]] }, 
+                then: 100000 
+              },
+              // 2. Đi muộn -> +50k
+              { 
+                case: { $eq: ["$trangThai", "Đi muộn"] }, 
+                then: 50000 
+              },
+              // 3. Nghỉ có lý do (Trạng thái là Nghỉ VÀ lý do có dữ liệu)
+              {
+                case: {
+                  $and: [
+                    { $eq: ["$trangThai", "Nghỉ"] },
+                    { $ne: ["$lyDo", ""] }, // Lý do không rỗng
+                    { $ne: ["$lyDo", null] } // Lý do không null
+                  ]
+                },
+                then: 0
+              },
+              // 4. Nghỉ không lý do (Trạng thái là Nghỉ VÀ lý do rỗng)
+              {
+                case: {
+                  $and: [
+                    { $eq: ["$trangThai", "Nghỉ"] },
+                    { $or: [{ $eq: ["$lyDo", ""] }, { $eq: ["$lyDo", null] }] }
+                  ]
+                },
+                then: -50000
+              }
+            ],
+            default: 0 // Các trường hợp lạ khác thì tính 0đ
+          }
+        }
+      }
+    });
+
+    // B5: Gom nhóm lại theo Nhân Viên để tính Tổng Lương
+    pipeline.push({
+      $group: {
+        _id: "$maNV", // Group theo mã nhân viên
+        TenNhanVien: { $first: "$hoTen" }, // Lấy tên (vì giống nhau trong 1 nhóm)
+        TongLuong: { $sum: "$tienLuongNgay" }, // Cộng dồn tiền
+        ChiTietChamCong: {
+          $push: { // Tạo mảng chi tiết để dễ đối soát
+            ngay: "$ngayCham",
+            trangThai: "$trangThai",
+            lyDo: "$lyDo",
+            tien: "$tienLuongNgay"
+          }
+        }
+      }
+    });
+
+    const result = await BangChamCong.aggregate(pipeline);
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: "Lỗi tính lương: " + err.message });
   }
 });
 
