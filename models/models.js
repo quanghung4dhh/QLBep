@@ -2,9 +2,9 @@ import mongoose from "mongoose";
 const { Schema } = mongoose;
 
 
-// --- 2. ĐỊNH NGHĨA SCHEMAS (CẤU TRÚC BẢNG) ---
+// ---  ĐỊNH NGHĨA SCHEMAS (CẤU TRÚC BẢNG) ---
 
-// 2.1. Nhân Viên (Gộp 5 bảng SQL thành 1 Collection)
+// 1. Nhân Viên (Gộp 5 bảng SQL thành 1 Collection)
 const NhanVienSchema = new Schema({
   maNV: { type: String, required: true, unique: true },
   hoTen: String,
@@ -15,7 +15,7 @@ const NhanVienSchema = new Schema({
   roles: [String], // Chứa: 'PhucVu', 'Kho', 'QuanLiBep', 'DauBep'...
 });
 
-// 2.2. Nguyên Liệu
+// 2. Nguyên Liệu
 const NguyenLieuSchema = new Schema({
   maNL: { type: String, required: true, unique: true },
   tenNL: String,
@@ -24,7 +24,7 @@ const NguyenLieuSchema = new Schema({
   donGia: Number,
 });
 
-// 2.3. Món Ăn (Gộp Món + Công Thức + Định Lượng)
+// 3. Món Ăn (Gộp Món + Công Thức + Định Lượng)
 const MonAnSchema = new Schema({
   maMon: { type: String, required: true, unique: true },
   tenMon: String,
@@ -42,7 +42,7 @@ const MonAnSchema = new Schema({
   ],
 });
 
-// 2.4. Nhà Cung Cấp
+// 4. Nhà Cung Cấp
 const NhaCungCapSchema = new Schema({
   maNCC: { type: String, required: true, unique: true },
   tenNCC: String,
@@ -50,7 +50,7 @@ const NhaCungCapSchema = new Schema({
   sdt: String,
 });
 
-// 2.5. Hóa Đơn (Gộp Hóa Đơn + Chi Tiết)
+// 5. Hóa Đơn (Gộp Hóa Đơn + Chi Tiết)
 const HoaDonSchema = new Schema({
   maHD: { type: String, required: true, unique: true },
   ngayLap: Date,
@@ -66,7 +66,7 @@ const HoaDonSchema = new Schema({
   ],
 });
 
-// 2.6. Đơn Hàng (Gộp Đơn Hàng + Chi Tiết Nhập)
+// 6. Đơn Hàng (Gộp Đơn Hàng + Chi Tiết Nhập)
 const DonHangSchema = new Schema({
   maDH: { type: String, required: true, unique: true },
   ngayDat: Date,
@@ -84,7 +84,7 @@ const DonHangSchema = new Schema({
   ],
 });
 
-// 2.7. Ca Làm Việc
+// 7. Ca Làm Việc
 const CaLamViecSchema = new Schema({
   maCa: { type: String, required: true, unique: true },
   tenCa: String,
@@ -92,7 +92,7 @@ const CaLamViecSchema = new Schema({
   gioKT: String,
 });
 
-// 2.8. Lịch Làm Việc
+// 8. Lịch Làm Việc
 const LichLamViecSchema = new Schema({
   maLich: Number,
   maNV: String,
@@ -100,7 +100,7 @@ const LichLamViecSchema = new Schema({
   ngayLam: Date,
 });
 
-// 2.9. Bảng Chấm Công
+// 9. Bảng Chấm Công
 const BangChamCongSchema = new Schema({
   id: Number,
   maNV: String,
@@ -110,7 +110,7 @@ const BangChamCongSchema = new Schema({
   trangThai: String,
 });
 
-// 2.10. Phân Công Ca (Bảng phụ từ SQL)
+// 10. Phân Công Ca (Bảng phụ từ SQL)
 const PhanCongCaSchema = new Schema({
   maCa: String,
   ngay: Date,
@@ -118,7 +118,7 @@ const PhanCongCaSchema = new Schema({
   gioKT: String,
 });
 
-// --- 3. TẠO VÀ EXPORT MODELS ---
+// --- TẠO VÀ EXPORT MODELS ---
 export const NhanVien = mongoose.model("NhanVien", NhanVienSchema);
 export const NguyenLieu = mongoose.model("NguyenLieu", NguyenLieuSchema);
 export const MonAn = mongoose.model("MonAn", MonAnSchema);

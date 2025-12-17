@@ -11,13 +11,12 @@ import {
   LichLamViec,
   BangChamCong,
   PhanCongCa,
-} from "./db.js";
+} from "../models/models.js";
 dotenv.config();
 
 // ---  CẤU HÌNH KẾT NỐI ---
 
 const MONGO_URI = process.env.MONGO_URI;
-console.log(MONGO_URI);
 
 // --- CHUẨN BỊ DỮ LIỆU ---
 
@@ -1075,7 +1074,7 @@ const dataPhanCongCa = [
   { maCa: "CA10", ngay: "2024-12-05", gioBD: "08:00", gioKT: "16:00" },
 ];
 
-// --- 5. HÀM SEED DATABASE ---
+// --- HÀM SEED DATABASE ---
 const seedDB = async () => {
   try {
     await mongoose.connect(MONGO_URI);
@@ -1108,4 +1107,4 @@ const seedDB = async () => {
   }
 };
 
-// seedDB();
+seedDB();
