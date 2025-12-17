@@ -28,4 +28,32 @@ router.get("/:maNV", async (req, res) => {
   }
 });
 
+router.post("/", async (req, res) => {
+  try {
+    const data = req.body; // Lấy dữ liệu gửi lên từ Frontend/Postman
+
+    // 1. Kiểm tra xem Mã NV đã tồn tại chưa (Tránh lỗi trùng lặp)
+    const existingNV = await NhanVien.findOne({ maNV: data.maNV });
+    if (existingNV) {
+      return res
+        .status(400)
+        .json({ message: "❌ Lỗi: Mã nhân viên này đã tồn tại!" });
+    }
+
+    // 2. Tạo đối tượng nhân viên mới
+    const newNV = new NhanVien(data);
+
+    // 3. Lưu vào Database
+    await newNV.save();
+
+    // 4. Trả về thông báo thành công (201 = Created)
+    res.status(201).json({
+      message: "✅ Thêm nhân viên thành công!",
+      nhanVien: newNV,
+    });
+  } catch (err) {
+    // Bắt lỗi (ví dụ: thiếu dữ liệu, sai kiểu dữ liệu...)
+    res.status(500).json({ message: "❌ Lỗi Server: " + err.message });
+  }
+});
 export default router;

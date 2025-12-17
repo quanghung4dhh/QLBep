@@ -1,5 +1,5 @@
 import express from "express";
-import { LichLamViec, BangChamCong } from "../models/models.js";
+import { LichLamViec, BangChamCong, CaLamViec } from "../models/models.js";
 
 const router = express.Router();
 
@@ -18,8 +18,8 @@ router.get("/", async (req, res) => {
           from: "nhanviens", // Tên collection trong MongoDB
           localField: "maNV",
           foreignField: "maNV",
-          as: "infoNV"
-        }
+          as: "infoNV",
+        },
       },
       // Join với bảng CaLamViec để lấy tên ca
       {
@@ -27,8 +27,8 @@ router.get("/", async (req, res) => {
           from: "calamviecs",
           localField: "maCa",
           foreignField: "maCa",
-          as: "infoCa"
-        }
+          as: "infoCa",
+        },
       },
       // Làm gọn kết quả trả về
       {
@@ -39,12 +39,12 @@ router.get("/", async (req, res) => {
           maCa: 1,
           TenCa: { $arrayElemAt: ["$infoCa.tenCa", 0] },
           GioBatDau: { $arrayElemAt: ["$infoCa.gioBD", 0] },
-          ngayLam: 1
-        }
+          ngayLam: 1,
+        },
       },
-      { $sort: { ngayLam: -1 } } // Ngày mới nhất lên đầu
+      { $sort: { ngayLam: -1 } }, // Ngày mới nhất lên đầu
     ]);
-    
+
     res.json(listLich);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -55,7 +55,9 @@ router.get("/", async (req, res) => {
 // GET: /api/lich-lam-viec/nhan-vien/NV001
 router.get("/nhan-vien/:maNV", async (req, res) => {
   try {
-    const list = await LichLamViec.find({ maNV: req.params.maNV }).sort({ ngayLam: -1 });
+    const list = await LichLamViec.find({ maNV: req.params.maNV }).sort({
+      ngayLam: -1,
+    });
     res.json(list);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -76,8 +78,8 @@ router.get("/cham-cong", async (req, res) => {
           from: "nhanviens",
           localField: "maNV",
           foreignField: "maNV",
-          as: "infoNV"
-        }
+          as: "infoNV",
+        },
       },
       {
         $project: {
@@ -87,10 +89,10 @@ router.get("/cham-cong", async (req, res) => {
           ngayCham: 1,
           gioVaoThucTe: 1,
           gioRaThucTe: 1,
-          trangThai: 1
-        }
+          trangThai: 1,
+        },
       },
-      { $sort: { ngayCham: -1 } }
+      { $sort: { ngayCham: -1 } },
     ]);
 
     res.json(listCC);
@@ -107,13 +109,67 @@ router.get("/cham-cong/thong-ke", async (req, res) => {
       {
         $group: {
           _id: "$trangThai", // Group theo 'Đúng giờ', 'Đi muộn'...
-          SoLuong: { $sum: 1 }
-        }
-      }
+          SoLuong: { $sum: 1 },
+        },
+      },
     ]);
     res.json(stats);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+router.post("/", async (req, res) => {
+  try {
+    // Input nhận vào: Mã nhân viên, Mã ca, Ngày làm
+    // (Lưu ý: Nên dùng Mã (ID) thay vì Tên để tránh trùng lặp tên)
+    const { maNV, maCa, ngayLam } = req.body;
+
+    // 1. VALIDATION: Kiểm tra dữ liệu đầu vào
+    if (!maNV || !maCa || !ngayLam) {
+      return res
+        .status(400)
+        .json({ message: "Vui lòng nhập đủ: maNV, maCa, ngayLam" });
+    }
+
+    // 2. Kiểm tra xem Nhân viên và Ca có tồn tại không?
+    const nvExists = await NhanVien.findOne({ maNV });
+    const caExists = await CaLamViec.findOne({ maCa });
+
+    if (!nvExists)
+      return res.status(404).json({ message: "Mã nhân viên không tồn tại!" });
+    if (!caExists)
+      return res.status(404).json({ message: "Mã ca làm việc không tồn tại!" });
+
+    // 3. Kiểm tra trùng lặp (Nhân viên này đã được xếp ca này vào ngày này chưa?)
+    const existingLich = await LichLamViec.findOne({ maNV, maCa, ngayLam });
+    if (existingLich) {
+      return res
+        .status(400)
+        .json({ message: "Nhân viên này đã có lịch làm việc này rồi!" });
+    }
+
+    // 4. Tự động tạo maLich (Vì trong Schema bạn để maLich là Number)
+    // Logic: Tìm mã lớn nhất hiện tại + 1. Nếu chưa có thì bắt đầu từ 1.
+    const lastLich = await LichLamViec.findOne().sort({ maLich: -1 });
+    const newMaLich = lastLich && lastLich.maLich ? lastLich.maLich + 1 : 1;
+
+    // 5. Tạo và Lưu
+    const newLich = new LichLamViec({
+      maLich: newMaLich,
+      maNV,
+      maCa,
+      ngayLam: new Date(ngayLam), // Chuyển chuỗi ngày thành đối tượng Date
+    });
+
+    await newLich.save();
+
+    res.status(201).json({
+      message: "✅ Phân công ca thành công!",
+      chiTiet: newLich,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "❌ Lỗi Server: " + err.message });
   }
 });
 
