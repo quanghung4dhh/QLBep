@@ -108,6 +108,7 @@ const BangChamCongSchema = new Schema({
   gioVaoThucTe: Date,
   gioRaThucTe: Date,
   trangThai: String,
+  lyDo: String,
 });
 
 // 10. Phân Công Ca (Bảng phụ từ SQL)

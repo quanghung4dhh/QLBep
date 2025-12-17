@@ -1,5 +1,5 @@
 import express from "express";
-import { LichLamViec, BangChamCong, CaLamViec } from "../models/models.js";
+import { LichLamViec, BangChamCong, CaLamViec, NhanVien } from "../models/models.js";
 
 const router = express.Router();
 
@@ -168,6 +168,62 @@ router.post("/", async (req, res) => {
       message: "✅ Phân công ca thành công!",
       chiTiet: newLich,
     });
+  } catch (err) {
+    res.status(500).json({ message: "❌ Lỗi Server: " + err.message });
+  }
+});
+
+router.post("/cham-cong", async (req, res) => {
+  try {
+    const { tenNV, trangThai, lyDo, ngayCham } = req.body;
+
+    // 1. Validation cơ bản
+    if (!tenNV || !trangThai) {
+      return res.status(400).json({ message: "Vui lòng nhập Tên nhân viên và Trạng thái!" });
+    }
+
+    // 2. Tìm Mã nhân viên từ Tên nhân viên
+    // (Lưu ý: Nếu có 2 người trùng tên, lệnh này sẽ lấy người đầu tiên tìm thấy. 
+    // Trong thực tế nên dùng Mã NV để chính xác hơn).
+    const nv = await NhanVien.findOne({ 
+        hoTen: { $regex: new RegExp(`^${tenNV}$`, "i") } // Tìm chính xác tên, không phân biệt hoa thường
+    });
+
+    if (!nv) {
+      return res.status(404).json({ message: `❌ Không tìm thấy nhân viên tên là: ${tenNV}` });
+    }
+
+    // 3. Tự động tạo ID cho bảng chấm công (Vì id là Number)
+    const lastCC = await BangChamCong.findOne().sort({ id: -1 });
+    const newId = lastCC && lastCC.id ? lastCC.id + 1 : 1;
+
+    // 4. Xử lý thời gian (Nếu không gửi ngày thì lấy ngày hiện tại)
+    const thoiGianCham = ngayCham ? new Date(ngayCham) : new Date();
+
+    // 5. Tạo dữ liệu chấm công
+    const newChamCong = new BangChamCong({
+      id: newId,
+      maNV: nv.maNV, // Lưu mã vừa tìm được
+      ngayCham: thoiGianCham,
+      trangThai: trangThai,
+      lyDo: lyDo || "", // Nếu không có lý do thì để rỗng
+      // Nếu trạng thái là "Đi làm" hoặc "Đi muộn" thì set giờ vào là lúc này
+      gioVaoThucTe: ["Đi làm", "Đi muộn"].includes(trangThai) ? thoiGianCham : null,
+      gioRaThucTe: null 
+    });
+
+    await newChamCong.save();
+
+    res.status(201).json({
+      message: "✅ Chấm công thành công!",
+      chiTiet: {
+        tenNV: nv.hoTen,
+        trangThai: newChamCong.trangThai,
+        lyDo: newChamCong.lyDo,
+        ngay: thoiGianCham
+      }
+    });
+
   } catch (err) {
     res.status(500).json({ message: "❌ Lỗi Server: " + err.message });
   }
