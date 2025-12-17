@@ -41,4 +41,52 @@ router.get("/:maMon", async (req, res) => {
   }
 });
 
+router.post("/", async (req, res) => {
+  try {
+    const { maMon, tenMon, giaBan, trangThai } = req.body;
+
+    // 1. VALIDATION: Kiểm tra dữ liệu đầu vào
+    if (!maMon || !tenMon || giaBan === undefined) {
+      return res.status(400).json({ 
+        message: "Vui lòng nhập đủ: Mã món, Tên món và Giá bán" 
+      });
+    }
+
+    if (giaBan < 0) {
+      return res.status(400).json({ message: "Giá bán không được âm!" });
+    }
+
+    // 2. Kiểm tra trùng mã món
+    const existingMon = await MonAn.findOne({ maMon });
+    if (existingMon) {
+      return res.status(400).json({ 
+        message: `Mã món '${maMon}' đã tồn tại! Vui lòng chọn mã khác.` 
+      });
+    }
+
+    // 3. Xử lý trạng thái (Nếu không gửi lên thì mặc định là 'Còn bán')
+    // Nếu người dùng gửi text lạ, ta có thể ép về mặc định hoặc báo lỗi. 
+    // Ở đây mình gán mặc định nếu thiếu.
+    const status = trangThai || "Còn bán";
+
+    // 4. Tạo và Lưu
+    const newMonAn = new MonAn({
+      maMon,
+      tenMon,
+      giaBan,
+      trangThai: status
+    });
+
+    await newMonAn.save();
+
+    res.status(201).json({
+      message: "✅ Thêm món ăn thành công!",
+      data: newMonAn
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: "❌ Lỗi Server: " + err.message });
+  }
+});
+
 export default router;

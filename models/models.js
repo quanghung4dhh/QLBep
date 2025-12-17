@@ -29,6 +29,11 @@ const MonAnSchema = new Schema({
   maMon: { type: String, required: true, unique: true },
   tenMon: String,
   giaBan: Number,
+  trangThai: { 
+    type: String, 
+    enum: ["Còn bán", "Ngừng bán"], // Chỉ cho phép 2 giá trị này
+    default: "Còn bán" 
+  },
   congThuc: {
     maCT: String,
     ghiChu: String,
